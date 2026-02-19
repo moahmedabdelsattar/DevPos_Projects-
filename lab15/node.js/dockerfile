@@ -1,0 +1,33 @@
+# ------------------------------
+# Stage 1: Build Stage
+# ------------------------------
+FROM node:18-alpine AS build
+
+# مكان الشغل جوه image
+WORKDIR /usr/src/app
+
+# انسخ package.json و package-lock.json الأول عشان نستفيد من الكاش
+COPY package*.json ./
+
+# نزّل كل dependencies
+RUN npm install
+
+# انسخ الكود كله
+COPY . .
+
+# ------------------------------
+# Stage 2: Runtime Stage
+# ------------------------------
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+# انسخ من مرحلة البناء فقط الملفات المهمة
+COPY --from=build /usr/src/app ./
+
+# كشف البورت
+EXPOSE 3000
+
+# أمر تشغيل التطبيق
+CMD ["node", "app.js"]
+

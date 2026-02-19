@@ -1,0 +1,106 @@
+# -----------------------------
+# Secret للـ MySQL
+# -----------------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: root_pass
+  MYSQL_USER: ivolve_user
+  MYSQL_PASSWORD: ivolve_pass
+  MYSQL_DB: ivolve
+
+---
+# -----------------------------
+# MySQL Deployment
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:5.7
+          envFrom:
+            - secretRef:
+                name: mysql-secret
+          ports:
+            - containerPort: 3306
+
+---
+# -----------------------------
+# MySQL Service
+# -----------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+
+---
+# -----------------------------
+# Node.js Deployment
+# -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-app
+    spec:
+      containers:
+        - name: nodejs-app
+          image: mohamedabdelsattar12/java
+          envFrom:
+            - configMapRef:
+                name: nodejs-config
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - mountPath: /usr/src/app/data
+              name: nodejs-storage
+      volumes:
+        - name: nodejs-storage
+          persistentVolumeClaim:
+            claimName: nodejs-pvc
+
+---
+# -----------------------------
+# Node.js Service
+# -----------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs-service
+spec:
+  type: ClusterIP
+  selector:
+    app: nodejs-app
+  ports:
+    - port: 80
+      targetPort: 3000
+
